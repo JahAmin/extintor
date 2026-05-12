@@ -254,7 +254,7 @@
             <tr>
               <th class="ps-4 py-3">Unidade Operacional</th>
               <th class="text-center">PQS (4/6/8kg)</th>
-              <th class="text-center">CO2 (6kg)</th>
+              <th class="text-center">CO2 (2/4/6kg)</th>
               <th class="text-center">Água (10L)</th>
               <th class="text-center">Hidrantes</th>
               <th class="text-center">Vencimento</th>
@@ -282,9 +282,14 @@
               <td class="text-center"><span class="badge bg-light text-dark border">{{ item.co206 || 0 }}</span></td>
               <td class="text-center"><span class="badge bg-light text-dark border">{{ item.h2o || 0 }}</span></td>
 
-              <td class="text-center">
-                <span class="badge badge-hidrante px-3">{{ item.hidrante || 0 }}</span>
-              </td>
+              
+             <td class="text-center">
+             <div class="d-flex justify-content-center gap-1">
+                  ="4kg">{{ item.co204 || 0 }}</span>    <span class="badge bg-light text-dark border" title="2kg">{{ item.co202 || 0 }}</span>
+                 <span class="badge bg-light text-dark border" title="6kg">{{ item.co206 || 0 }}</span>
+                 </div>
+                    </td>
+
 
               <td class="text-center">
                 <span :class="['status-pill', getStatusClass(item)]">
@@ -513,19 +518,36 @@ createApp({
     const importFile = ref(null);
     let modalInstance = null;
 
-    const equipmentTypes = [
-      { label: 'PQS 4kg', key: 'pqs04', priceKey: 'p_pqs04' },
-      { label: 'PQS 6kg', key: 'pqs06', priceKey: 'p_pqs06' },
-      { label: 'PQS 8kg', key: 'pqs08', priceKey: 'p_pqs08' },
-      { label: 'CO2 6kg', key: 'co206', priceKey: 'p_co206' },
-      { label: 'Água 10L', key: 'h2o', priceKey: 'p_h2o' },
-      { label: 'Hidrante (Mangueiras)', key: 'hidrante', priceKey: 'p_hidrante' }
-    ];
+    
+const equipmentTypes = [
+  { label: 'PQS 4kg', key: 'pqs04', priceKey: 'p_pqs04' },
+  { label: 'PQS 6kg', key: 'pqs06', priceKey: 'p_pqs06' },
+  { label: 'PQS 8kg', key: 'pqs08', priceKey: 'p_pqs08' },
 
-    const DEFAULT_PRICES = {
-      p_pqs04: 48.00, p_pqs06: 55.00, p_pqs08: 85.00,
-      p_co206: 110.00, p_h2o: 42.00, p_hidrante: 120.00
-    };
+  { label: 'CO2 2kg', key: 'co202', priceKey: 'p_co202' },
+  { label: 'CO2 4kg', key: 'co204', priceKey: 'p_co204' },
+  { label: 'CO2 6kg', key: 'co206', priceKey: 'p_co206' },
+
+  { label: 'Água 10L', key: 'h2o', priceKey: 'p_h2o' },
+  { label: 'Hidrante (Mangueiras)', key: 'hidrante', priceKey: 'p_hidrante' }
+];
+
+
+    
+const DEFAULT_PRICES = {
+  p_pqs04: 48.00,
+  p_pqs06: 55.00,
+  p_pqs08: 85.00,
+
+  // Valores exemplo — ajuste conforme seu contrato/fornecedor:
+  p_co202: 85.00,
+  p_co204: 98.00,
+  p_co206: 110.00,
+
+  p_h2o: 42.00,
+  p_hidrante: 120.00
+};
+
 
     const safeNumber = (n) => {
       const v = Number(n);
@@ -608,8 +630,14 @@ createApp({
 
     const totalCustoGlobal = computed(() => inventory.value.reduce((a, b) => a + calculateRowCost(b), 0));
 
-    const totalEquipamentos = computed(() => inventory.value.reduce((a, b) =>
-      a + (b.pqs04||0) + (b.pqs06||0) + (b.pqs08||0) + (b.co206||0) + (b.h2o||0), 0));
+   
+  const totalEquipamentos = computed(() => inventory.value.reduce((a, b) =>
+  a
+  + (b.pqs04||0) + (b.pqs06||0) + (b.pqs08||0)
+  + (b.co202||0) + (b.co204||0) + (b.co206||0)
+  + (b.h2o||0),
+0));
+
 
     const totalHidrantes = computed(() => inventory.value.reduce((a, b) => a + (b.hidrante||0), 0));
 
@@ -774,7 +802,9 @@ createApp({
         'PQS 4kg': i.pqs04 || 0,
         'PQS 6kg': i.pqs06 || 0,
         'PQS 8kg': i.pqs08 || 0,
-        'CO2 6kg': i.co206 || 0,
+        'CO2 2kg': i.co202 || 0,
+		'CO2 4kg': i.co204 || 0,
+		'CO2 6kg': i.co206 || 0,
         'Água 10L': i.h2o || 0,
         'Hidrantes (Mangueiras)': i.hidrante || 0,
         'Custo Manutenção (R$)': calculateRowCost(i)
