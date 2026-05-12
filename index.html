@@ -1,8 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<html0" /><html lang="pt-br">
   <title>SMAN/ACR - Gestão Estratégica de Segurança (Offline)</title>
 
   <!-- Bootstrap 5.3 CSS -->
@@ -176,14 +173,17 @@
             <i class="bi bi-grid-3x3-gap me-1"></i> Todos
             <span class="ms-1 badge bg-secondary">{{ inventory.length }}</span>
           </button>
+
           <button class="btn" :class="statusFilter==='danger' ? 'btn-danger' : 'btn-outline-danger'" @click="statusFilter='danger'">
             <i class="bi bi-exclamation-triangle-fill me-1"></i> Vencidos
             <span class="ms-1 badge bg-danger">{{ countDanger }}</span>
           </button>
+
           <button class="btn" :class="statusFilter==='warning' ? 'btn-warning' : 'btn-outline-warning'" @click="statusFilter='warning'">
             <i class="bi bi-clock-history me-1"></i> 30 dias
             <span class="ms-1 badge bg-warning text-dark">{{ countWarning }}</span>
           </button>
+
           <button class="btn" :class="statusFilter==='ok' ? 'btn-success' : 'btn-outline-success'" @click="statusFilter='ok'">
             <i class="bi bi-check-circle-fill me-1"></i> OK
             <span class="ms-1 badge bg-success">{{ countOk }}</span>
@@ -254,7 +254,7 @@
             <tr>
               <th class="ps-4 py-3">Unidade Operacional</th>
               <th class="text-center">PQS (4/6/8kg)</th>
-              <th class="text-center">CO2 (2/4/6kg)</th>
+              <th class="text-center">CO2 (2/4/6kg)</th> <!-- ✅ atualizado -->
               <th class="text-center">Água (10L)</th>
               <th class="text-center">Hidrantes</th>
               <th class="text-center">Vencimento</th>
@@ -279,17 +279,18 @@
                 </div>
               </td>
 
-              <td class="text-center"><span class="badge bg-light text-dark border">{{ item.co206 || 0 }}</span></td>
+              <!-- ✅ CO2 agora tem 2kg / 4kg / 6kg -->
+              <td class="text-center">
+                <div class="d-flex justify-content-center gap-1">
+                  <span class="badge bg-light text-dark border" title="2kg">{{ item.co202 || 0 }}</span>
+                  <span class="badge bg-light text-dark border" title="4kg">{{ item.co204 || 0 }}</span>
+                  <span class="badge bg-light text-dark border" title="6kg">{{ item.co206 || 0 }}</span>
+                </div>
+              </td>
+
               <td class="text-center"><span class="badge bg-light text-dark border">{{ item.h2o || 0 }}</span></td>
 
-              
-             <td class="text-center">
-             <div class="d-flex justify-content-center gap-1">
-                  ="4kg">{{ item.co204 || 0 }}</span>    <span class="badge bg-light text-dark border" title="2kg">{{ item.co202 || 0 }}</span>
-                 <span class="badge bg-light text-dark border" title="6kg">{{ item.co206 || 0 }}</span>
-                 </div>
-                    </td>
-
+              <td class="text-center"><span class="badge badge-hidrante px-3">{{ item.hidrante || 0 }}</span></td>
 
               <td class="text-center">
                 <span :class="['status-pill', getStatusClass(item)]">
@@ -328,7 +329,6 @@
               </td>
             </tr>
           </tbody>
-
         </table>
       </div>
     </div>
@@ -383,6 +383,7 @@
                 </thead>
 
                 <tbody>
+                  <!-- ✅ Modal automaticamente inclui CO2 2kg e 4kg via equipmentTypes -->
                   <tr v-for="type in equipmentTypes" :key="type.key" class="border-bottom">
                     <td class="py-3">
                       <div class="fw-bold text-dark">{{ type.label }}</div>
@@ -490,17 +491,6 @@ async function dbDelete(id) {
   });
 }
 
-async function dbClear() {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, "readwrite");
-    const store = tx.objectStore(STORE);
-    const req = store.clear();
-    req.onsuccess = () => resolve(true);
-    req.onerror = () => reject(req.error);
-  });
-}
-
 /* =========================
    App Vue (Offline)
    ========================= */
@@ -518,36 +508,26 @@ createApp({
     const importFile = ref(null);
     let modalInstance = null;
 
-    
-const equipmentTypes = [
-  { label: 'PQS 4kg', key: 'pqs04', priceKey: 'p_pqs04' },
-  { label: 'PQS 6kg', key: 'pqs06', priceKey: 'p_pqs06' },
-  { label: 'PQS 8kg', key: 'pqs08', priceKey: 'p_pqs08' },
+    // ✅ ATUALIZADO: adicionados CO2 2kg e CO2 4kg (somente isso)
+    const equipmentTypes = [
+      { label: 'PQS 4kg', key: 'pqs04', priceKey: 'p_pqs04' },
+      { label: 'PQS 6kg', key: 'pqs06', priceKey: 'p_pqs06' },
+      { label: 'PQS 8kg', key: 'pqs08', priceKey: 'p_pqs08' },
 
-  { label: 'CO2 2kg', key: 'co202', priceKey: 'p_co202' },
-  { label: 'CO2 4kg', key: 'co204', priceKey: 'p_co204' },
-  { label: 'CO2 6kg', key: 'co206', priceKey: 'p_co206' },
+      { label: 'CO2 2kg', key: 'co202', priceKey: 'p_co202' }, // ✅ novo
+      { label: 'CO2 4kg', key: 'co204', priceKey: 'p_co204' }, // ✅ novo
+      { label: 'CO2 6kg', key: 'co206', priceKey: 'p_co206' },
 
-  { label: 'Água 10L', key: 'h2o', priceKey: 'p_h2o' },
-  { label: 'Hidrante (Mangueiras)', key: 'hidrante', priceKey: 'p_hidrante' }
-];
+      { label: 'Água 10L', key: 'h2o', priceKey: 'p_h2o' },
+      { label: 'Hidrante (Mangueiras)', key: 'hidrante', priceKey: 'p_hidrante' }
+    ];
 
-
-    
-const DEFAULT_PRICES = {
-  p_pqs04: 48.00,
-  p_pqs06: 55.00,
-  p_pqs08: 85.00,
-
-  // Valores exemplo — ajuste conforme seu contrato/fornecedor:
-  p_co202: 85.00,
-  p_co204: 98.00,
-  p_co206: 110.00,
-
-  p_h2o: 42.00,
-  p_hidrante: 120.00
-};
-
+    // ✅ ATUALIZADO: preços padrão para CO2 2kg e 4kg (exemplos)
+    const DEFAULT_PRICES = {
+      p_pqs04: 48.00, p_pqs06: 55.00, p_pqs08: 85.00,
+      p_co202: 85.00, p_co204: 98.00, p_co206: 110.00,
+      p_h2o: 42.00, p_hidrante: 120.00
+    };
 
     const safeNumber = (n) => {
       const v = Number(n);
@@ -630,14 +610,12 @@ const DEFAULT_PRICES = {
 
     const totalCustoGlobal = computed(() => inventory.value.reduce((a, b) => a + calculateRowCost(b), 0));
 
-   
-  const totalEquipamentos = computed(() => inventory.value.reduce((a, b) =>
-  a
-  + (b.pqs04||0) + (b.pqs06||0) + (b.pqs08||0)
-  + (b.co202||0) + (b.co204||0) + (b.co206||0)
-  + (b.h2o||0),
-0));
-
+    // ✅ ATUALIZADO: soma também CO2 2kg e 4kg
+    const totalEquipamentos = computed(() => inventory.value.reduce((a, b) =>
+      a
+      + (b.pqs04||0) + (b.pqs06||0) + (b.pqs08||0)
+      + (b.co202||0) + (b.co204||0) + (b.co206||0)
+      + (b.h2o||0), 0));
 
     const totalHidrantes = computed(() => inventory.value.reduce((a, b) => a + (b.hidrante||0), 0));
 
@@ -685,6 +663,8 @@ const DEFAULT_PRICES = {
       if (item) {
         const clone = JSON.parse(JSON.stringify(item));
         form.value = { ...DEFAULT_PRICES, ...clone };
+
+        // garante campos (inclui CO2 2kg/4kg para registros antigos)
         equipmentTypes.forEach(t => {
           form.value[t.key] ??= 0;
           form.value[t.priceKey] ??= DEFAULT_PRICES[t.priceKey] || 0;
@@ -787,7 +767,10 @@ const DEFAULT_PRICES = {
           venc: formatDateBR(new Date(vencISO + "T00:00:00")),
           updatedAt: new Date().toISOString()
         };
+
+        // garante todos os campos (inclui CO2 2kg/4kg como 0 no seed)
         equipmentTypes.forEach(t => payload[t.key] ??= 0);
+
         await dbPut(payload);
       }
 
@@ -802,9 +785,10 @@ const DEFAULT_PRICES = {
         'PQS 4kg': i.pqs04 || 0,
         'PQS 6kg': i.pqs06 || 0,
         'PQS 8kg': i.pqs08 || 0,
+        // ✅ ATUALIZADO: novas colunas CO2
         'CO2 2kg': i.co202 || 0,
-		'CO2 4kg': i.co204 || 0,
-		'CO2 6kg': i.co206 || 0,
+        'CO2 4kg': i.co204 || 0,
+        'CO2 6kg': i.co206 || 0,
         'Água 10L': i.h2o || 0,
         'Hidrantes (Mangueiras)': i.hidrante || 0,
         'Custo Manutenção (R$)': calculateRowCost(i)
@@ -840,7 +824,7 @@ const DEFAULT_PRICES = {
 
     const importBackupJSON = async (evt) => {
       const file = evt.target.files?.[0];
-      evt.target.value = ""; // reset para permitir reimportar o mesmo arquivo
+      evt.target.value = "";
       if (!file) return;
 
       try {
@@ -857,12 +841,14 @@ const DEFAULT_PRICES = {
 
         for (const item of data.items) {
           if (!item.id) item.id = crypto.randomUUID();
-          // garante preços padrão
+
+          // garante preços padrão + campos novos (CO2 2kg/4kg) sem perder nada
           const merged = { ...DEFAULT_PRICES, ...item };
           equipmentTypes.forEach(t => {
             merged[t.key] ??= 0;
             merged[t.priceKey] ??= DEFAULT_PRICES[t.priceKey] || 0;
           });
+
           await dbPut(merged);
         }
 
@@ -878,7 +864,6 @@ const DEFAULT_PRICES = {
       const modalEl = document.getElementById('unitModal');
       if (modalEl && window.bootstrap) modalInstance = new window.bootstrap.Modal(modalEl);
 
-      // Carrega DB offline
       try {
         await refreshFromDB();
       } catch (e) {
@@ -906,3 +891,5 @@ const DEFAULT_PRICES = {
 
 </body>
 </html>
+<head>
+  <meta charset="UTF-8" />
