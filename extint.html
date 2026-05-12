@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SMAN/ACR - Gestão Estratégica de Segurança (Offline)</title>
+
+  <!-- Bootstrap 5.3 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
+  <!-- Google Font -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+
+  <style>
+    :root {
+      --brand-success: #10b981;
+      --brand-dark: #0f172a;
+      --brand-primary: #3b82f6;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #f8fafc;
+      color: #334155;
+      letter-spacing: -0.01em;
+    }
+
+    [v-cloak] { display: none; }
+    .fw-800 { font-weight: 800; }
+
+    .glass-card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+
+    .table-container {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+      background: white;
+    }
+
+    .status-pill {
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .status-ok { background: #dcfce7; color: #166534; }
+    .status-warning { background: #fef3c7; color: #92400e; }
+    .status-danger { background: #fee2e2; color: #991b1b; }
+
+    .btn-brand {
+      background-color: var(--brand-success);
+      color: white;
+      border-radius: 10px;
+      font-weight: 700;
+      padding: 10px 20px;
+      border: none;
+    }
+    .btn-brand:hover { background-color: #059669; color: white; }
+
+    .loading-screen {
+      position: fixed; inset: 0; background: white; z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+
+    .table-sticky-header thead th {
+      position: sticky;
+      top: 0;
+      background: #f1f5f9;
+      z-index: 10;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+    }
+
+    .badge-hidrante {
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+      font-weight: 800;
+    }
+
+    .input-custom {
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      padding: 0.6rem;
+    }
+    .input-custom:focus {
+      border-color: var(--brand-success);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    .chip-filter .btn {
+      border-radius: 999px;
+      font-weight: 800;
+      padding: 8px 12px;
+    }
+
+    .small-muted {
+      font-size: 0.75rem;
+      color: #64748b;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- Bootstrap JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- XLSX (Exportar Excel) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Vue 3 (Global build, funciona abrindo arquivo direto) -->
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+
+<div id="app" v-cloak>
+  <!-- Tela de Carregamento -->
+  <div v-if="loading" class="loading-screen">
+    <div class="spinner-grow text-success mb-3"></div>
+    <div class="fw-bold text-dark">Carregando Base Offline (IndexedDB)...</div>
+    <div class="text-muted small">Sem internet • Sem Firebase</div>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top py-3">
+    <div class="container-fluid px-4">
+      <a class="navbar-brand d-flex align-items-center" href="javascript:void(0)">
+        <div class="bg-success text-white rounded-3 p-2 me-2 d-flex align-items-center justify-content-center"
+             style="width: 42px; height: 42px;">
+          <i class="bi bi-shield-check-fill fs-4"></i>
+        </div>
+        <div>
+          <span class="fw-800 fs-4 mb-0 d-block">SMAN <span class="text-success">ACR</span></span>
+          <span class="text-muted" style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase;">
+            Acre • Segurança do Trabalho • Offline
+          </span>
+        </div>
+      </a>
+
+      <div class="ms-auto d-flex gap-3 align-items-center flex-wrap">
+        <div class="input-group" style="width: 320px;">
+          <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+          <input type="text" v-model="searchQuery" class="form-control border-start-0 ps-0"
+                 placeholder="Filtrar por unidade..." />
+        </div>
+
+        <button class="btn btn-brand shadow-sm" @click="openModal()">
+          <i class="bi bi-plus-lg me-2"></i> Nova Unidade
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid p-4">
+
+    <!-- Cabeçalho + ações -->
+    <div class="row mb-4 align-items-end">
+      <div class="col-lg-6">
+        <h2 class="fw-800 text-dark mb-1">Painel Estratégico Acre</h2>
+        <p class="text-muted mb-0">Gestão regional offline de equipamentos contra incêndio e hidrantes.</p>
+
+        <div class="mt-3 d-flex gap-2 flex-wrap chip-filter">
+          <button class="btn" :class="statusFilter==='all' ? 'btn-dark' : 'btn-outline-dark'" @click="statusFilter='all'">
+            <i class="bi bi-grid-3x3-gap me-1"></i> Todos
+            <span class="ms-1 badge bg-secondary">{{ inventory.length }}</span>
+          </button>
+          <button class="btn" :class="statusFilter==='danger' ? 'btn-danger' : 'btn-outline-danger'" @click="statusFilter='danger'">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i> Vencidos
+            <span class="ms-1 badge bg-danger">{{ countDanger }}</span>
+          </button>
+          <button class="btn" :class="statusFilter==='warning' ? 'btn-warning' : 'btn-outline-warning'" @click="statusFilter='warning'">
+            <i class="bi bi-clock-history me-1"></i> 30 dias
+            <span class="ms-1 badge bg-warning text-dark">{{ countWarning }}</span>
+          </button>
+          <button class="btn" :class="statusFilter==='ok' ? 'btn-success' : 'btn-outline-success'" @click="statusFilter='ok'">
+            <i class="bi bi-check-circle-fill me-1"></i> OK
+            <span class="ms-1 badge bg-success">{{ countOk }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="col-lg-6 text-lg-end mt-3 mt-lg-0">
+        <button class="btn btn-dark px-3 me-2 shadow-sm border-0"
+                @click="seedData"
+                v-if="inventory.length === 0"
+                style="background: #1e293b;">
+          <i class="bi bi-database-fill-check me-2 text-warning"></i> Restaurar Base Padrão
+        </button>
+
+        <button class="btn btn-outline-success px-3 shadow-sm fw-bold me-2" @click="exportToExcel">
+          <i class="bi bi-file-excel me-2"></i> Exportar XLSX
+        </button>
+
+        <button class="btn btn-outline-primary px-3 shadow-sm fw-bold me-2" @click="exportBackupJSON">
+          <i class="bi bi-cloud-arrow-down-fill me-2"></i> Backup JSON
+        </button>
+
+        <button class="btn btn-outline-secondary px-3 shadow-sm fw-bold" @click="triggerImportJSON">
+          <i class="bi bi-cloud-arrow-up-fill me-2"></i> Restaurar JSON
+        </button>
+
+        <input ref="importFile" type="file" accept="application/json" class="d-none" @change="importBackupJSON" />
+      </div>
+    </div>
+
+    <!-- Métricas -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-3">
+        <div class="glass-card p-4">
+          <div class="small fw-bold text-muted mb-1 text-uppercase">Investimento em Manutenção</div>
+          <div class="h2 fw-800 text-success mb-0">{{ formatMoney(totalCustoGlobal) }}</div>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="glass-card p-4">
+          <div class="small fw-bold text-muted mb-1 text-uppercase">Total de Extintores</div>
+          <div class="h2 fw-800 mb-0 text-dark">{{ totalEquipamentos }}</div>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="glass-card p-4">
+          <div class="small fw-bold text-muted mb-1 text-uppercase">Mangueiras de Hidrante</div>
+          <div class="h2 fw-800 text-primary mb-0">{{ totalHidrantes }}</div>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="glass-card p-4">
+          <div class="small fw-bold text-muted mb-1 text-uppercase">Total de Unidades</div>
+          <div class="h2 fw-800 mb-0" style="color: #6366f1;">{{ inventory.length }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="table-container shadow-sm">
+      <div class="table-responsive" style="max-height: 65vh;">
+        <table class="table table-hover align-middle mb-0 table-sticky-header">
+          <thead>
+            <tr>
+              <th class="ps-4 py-3">Unidade Operacional</th>
+              <th class="text-center">PQS (4/6/8kg)</th>
+              <th class="text-center">CO2 (6kg)</th>
+              <th class="text-center">Água (10L)</th>
+              <th class="text-center">Hidrantes</th>
+              <th class="text-center">Vencimento</th>
+              <th class="text-center">Dias</th>
+              <th class="text-end pe-4">Custo Estimado</th>
+              <th class="text-center">Ações</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr v-for="item in filteredInventory" :key="item.id">
+              <td class="ps-4">
+                <div class="fw-bold text-dark text-uppercase small">{{ item.nome }}</div>
+                <span class="text-muted" style="font-size: 0.65rem;">ID: {{ item.id.substring(0,8) }}</span>
+              </td>
+
+              <td class="text-center">
+                <div class="d-flex justify-content-center gap-1">
+                  <span class="badge bg-light text-dark border" title="4kg">{{ item.pqs04 || 0 }}</span>
+                  <span class="badge bg-light text-dark border" title="6kg">{{ item.pqs06 || 0 }}</span>
+                  <span class="badge bg-light text-dark border" title="8kg">{{ item.pqs08 || 0 }}</span>
+                </div>
+              </td>
+
+              <td class="text-center"><span class="badge bg-light text-dark border">{{ item.co206 || 0 }}</span></td>
+              <td class="text-center"><span class="badge bg-light text-dark border">{{ item.h2o || 0 }}</span></td>
+
+              <td class="text-center">
+                <span class="badge badge-hidrante px-3">{{ item.hidrante || 0 }}</span>
+              </td>
+
+              <td class="text-center">
+                <span :class="['status-pill', getStatusClass(item)]">
+                  <i :class="getStatusIcon(item)"></i>
+                  {{ displayVenc(item) }}
+                </span>
+              </td>
+
+              <td class="text-center">
+                <span class="fw-800"
+                      :class="daysToExpire(item) < 0 ? 'text-danger' : (daysToExpire(item) < 30 ? 'text-warning' : 'text-success')">
+                  {{ daysToExpire(item) === null ? '—' : daysToExpire(item) }}
+                </span>
+              </td>
+
+              <td class="text-end pe-4">
+                <div class="fw-800 text-success">{{ formatMoney(calculateRowCost(item)) }}</div>
+              </td>
+
+              <td class="text-center">
+                <div class="btn-group">
+                  <button class="btn btn-sm btn-outline-primary border-0" @click="openModal(item)" title="Editar">
+                    <i class="bi bi-pencil-fill"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger border-0" @click="confirmDelete(item)" title="Excluir">
+                    <i class="bi bi-trash3-fill"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <tr v-if="filteredInventory.length === 0">
+              <td colspan="9" class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                Nenhuma unidade encontrada para os critérios atuais.
+              </td>
+            </tr>
+          </tbody>
+
+        </table>
+      </div>
+    </div>
+
+    <div class="mt-3 text-muted small">
+      <i class="bi bi-shield-lock-fill me-1"></i>
+      Dados armazenados localmente no navegador (IndexedDB). Use <b>Backup JSON</b> para guardar uma cópia.
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal fade" id="unitModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+        <div class="modal-header bg-dark text-white p-4 border-0">
+          <div>
+            <h5 class="modal-title fw-bold">{{ isEditingId ? 'Atualizar Unidade ACR' : 'Registrar Nova Unidade' }}</h5>
+            <p class="text-white-50 small mb-0">Configure as quantidades e preços unitários de manutenção.</p>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body p-4 bg-light">
+          <div class="glass-card p-4 mb-4">
+            <div class="row g-3">
+              <div class="col-md-8">
+                <label class="form-label fw-bold small text-uppercase text-muted">Nome da Unidade Regional</label>
+                <input type="text" v-model="form.nome" class="form-control input-custom" placeholder="Ex: AC Cruzeiro do Sul" />
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label fw-bold small text-uppercase text-muted">Próxima Manutenção</label>
+                <input type="date" v-model="form.vencISO" class="form-control input-custom" />
+                <div class="mt-2 small text-muted">
+                  <span class="small-muted">Exibição:</span>
+                  {{ form.vencISO ? formatDateBR(new Date(form.vencISO + 'T00:00:00')) : '—' }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass-card p-4 overflow-hidden">
+            <div class="table-responsive">
+              <table class="table table-borderless align-middle mb-0">
+                <thead class="small text-muted text-uppercase border-bottom">
+                  <tr>
+                    <th class="pb-3">Tipo de Equipamento</th>
+                    <th class="text-center pb-3">Quantidade</th>
+                    <th class="text-center pb-3">Preço Manut. Unitário (R$)</th>
+                    <th class="text-end pb-3">Subtotal</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr v-for="type in equipmentTypes" :key="type.key" class="border-bottom">
+                    <td class="py-3">
+                      <div class="fw-bold text-dark">{{ type.label }}</div>
+                      <div class="text-muted small" v-if="type.key.includes('hidrante')">Teste de mangueira + acessórios</div>
+                      <div class="text-muted small" v-else>Carga, pintura e lacre</div>
+                    </td>
+
+                    <td style="width: 140px;">
+                      <input type="number" v-model.number="form[type.key]" class="form-control text-center input-custom" min="0" step="1" />
+                    </td>
+
+                    <td style="width: 220px;">
+                      <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">R$</span>
+                        <input type="number" v-model.number="form[type.priceKey]" class="form-control text-end border-start-0 input-custom" step="0.01" min="0" />
+                      </div>
+                    </td>
+
+                    <td class="text-end fw-bold text-dark">
+                      {{ formatMoney((form[type.key]||0) * (form[type.priceKey]||0)) }}
+                    </td>
+                  </tr>
+                </tbody>
+
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer bg-light border-0 p-4">
+          <div class="me-auto">
+            <span class="text-muted small text-uppercase fw-bold d-block">Orçamento Total da Unidade:</span>
+            <div class="h3 fw-800 text-success mb-0">{{ formatMoney(calculateRowCost(form)) }}</div>
+          </div>
+
+          <button type="button" class="btn btn-outline-secondary px-4 fw-bold me-2" data-bs-dismiss="modal">
+            Cancelar
+          </button>
+
+          <button type="button" class="btn btn-success px-5 py-2 fw-bold shadow-sm" @click="saveUnit" :disabled="saving || !isFormValid">
+            <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
+            Salvar Registro
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =========================
+   IndexedDB (Offline DB)
+   ========================= */
+const DB_NAME = "SMAN_ACR_OFFLINE_DB";
+const DB_VERSION = 1;
+const STORE = "extintores";
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(STORE)) {
+        db.createObjectStore(STORE, { keyPath: "id" });
+      }
+    };
+
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbGetAll() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readonly");
+    const store = tx.objectStore(STORE);
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbPut(item) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    const store = tx.objectStore(STORE);
+    const req = store.put(item);
+    req.onsuccess = () => resolve(true);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbDelete(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    const store = tx.objectStore(STORE);
+    const req = store.delete(id);
+    req.onsuccess = () => resolve(true);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbClear() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    const store = tx.objectStore(STORE);
+    const req = store.clear();
+    req.onsuccess = () => resolve(true);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/* =========================
+   App Vue (Offline)
+   ========================= */
+const { createApp, ref, computed, onMounted } = Vue;
+
+createApp({
+  setup() {
+    const inventory = ref([]);
+    const searchQuery = ref("");
+    const statusFilter = ref("all");
+    const loading = ref(true);
+    const saving = ref(false);
+    const form = ref({});
+    const isEditingId = ref(null);
+    const importFile = ref(null);
+    let modalInstance = null;
+
+    const equipmentTypes = [
+      { label: 'PQS 4kg', key: 'pqs04', priceKey: 'p_pqs04' },
+      { label: 'PQS 6kg', key: 'pqs06', priceKey: 'p_pqs06' },
+      { label: 'PQS 8kg', key: 'pqs08', priceKey: 'p_pqs08' },
+      { label: 'CO2 6kg', key: 'co206', priceKey: 'p_co206' },
+      { label: 'Água 10L', key: 'h2o', priceKey: 'p_h2o' },
+      { label: 'Hidrante (Mangueiras)', key: 'hidrante', priceKey: 'p_hidrante' }
+    ];
+
+    const DEFAULT_PRICES = {
+      p_pqs04: 48.00, p_pqs06: 55.00, p_pqs08: 85.00,
+      p_co206: 110.00, p_h2o: 42.00, p_hidrante: 120.00
+    };
+
+    const safeNumber = (n) => {
+      const v = Number(n);
+      return Number.isFinite(v) ? v : 0;
+    };
+
+    const formatMoney = (val) =>
+      new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
+
+    const formatDateBR = (dateObj) => {
+      if (!dateObj || isNaN(dateObj.getTime())) return '—';
+      const dd = String(dateObj.getDate()).padStart(2, '0');
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const yyyy = dateObj.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    };
+
+    const todayMidnight = () => {
+      const d = new Date();
+      d.setHours(0,0,0,0);
+      return d;
+    };
+
+    const parseVencToDate = (item) => {
+      if (!item) return null;
+
+      if (item.vencISO && typeof item.vencISO === 'string' && item.vencISO.includes('-')) {
+        const dt = new Date(item.vencISO + 'T00:00:00');
+        return isNaN(dt.getTime()) ? null : dt;
+      }
+
+      if (item.venc && typeof item.venc === 'string' && item.venc.includes('/')) {
+        try {
+          const [dd, mm, yyyy] = item.venc.split('/').map(x => parseInt(x, 10));
+          const dt = new Date(yyyy, (mm - 1), dd);
+          if (dt.getFullYear() !== yyyy || dt.getMonth() !== (mm - 1) || dt.getDate() !== dd) return null;
+          dt.setHours(0,0,0,0);
+          return dt;
+        } catch { return null; }
+      }
+
+      return null;
+    };
+
+    const daysToExpire = (item) => {
+      const dt = parseVencToDate(item);
+      if (!dt) return null;
+      const diff = (dt.getTime() - todayMidnight().getTime()) / 86400000;
+      return Math.floor(diff);
+    };
+
+    const getStatusClass = (item) => {
+      const d = daysToExpire(item);
+      if (d === null) return "status-warning";
+      if (d < 0) return "status-danger";
+      if (d < 30) return "status-warning";
+      return "status-ok";
+    };
+
+    const getStatusIcon = (item) => {
+      const d = daysToExpire(item);
+      if (d === null) return "bi bi-question-circle-fill";
+      if (d < 0) return "bi bi-x-octagon-fill";
+      if (d < 30) return "bi bi-exclamation-triangle-fill";
+      return "bi bi-check-circle-fill";
+    };
+
+    const displayVenc = (item) => {
+      const dt = parseVencToDate(item);
+      if (!dt) return item?.venc || '—';
+      return formatDateBR(dt);
+    };
+
+    const calculateRowCost = (u) => {
+      if (!u) return 0;
+      return equipmentTypes.reduce((acc, type) => acc + (safeNumber(u[type.key]) * safeNumber(u[type.priceKey])), 0);
+    };
+
+    const isFormValid = computed(() => !!(form.value.nome || "").trim());
+
+    const totalCustoGlobal = computed(() => inventory.value.reduce((a, b) => a + calculateRowCost(b), 0));
+
+    const totalEquipamentos = computed(() => inventory.value.reduce((a, b) =>
+      a + (b.pqs04||0) + (b.pqs06||0) + (b.pqs08||0) + (b.co206||0) + (b.h2o||0), 0));
+
+    const totalHidrantes = computed(() => inventory.value.reduce((a, b) => a + (b.hidrante||0), 0));
+
+    const countDanger = computed(() => inventory.value.filter(i => getStatusClass(i) === 'status-danger').length);
+    const countWarning = computed(() => inventory.value.filter(i => getStatusClass(i) === 'status-warning').length);
+    const countOk = computed(() => inventory.value.filter(i => getStatusClass(i) === 'status-ok').length);
+
+    const filteredInventory = computed(() => {
+      let list = [...inventory.value];
+
+      if (searchQuery.value) {
+        const q = searchQuery.value.toLowerCase();
+        list = list.filter(i => (i.nome || "").toLowerCase().includes(q));
+      }
+
+      if (statusFilter.value !== 'all') {
+        list = list.filter(i => {
+          const cls = getStatusClass(i);
+          return statusFilter.value === 'danger' ? cls === 'status-danger'
+               : statusFilter.value === 'warning' ? cls === 'status-warning'
+               : statusFilter.value === 'ok' ? cls === 'status-ok'
+               : true;
+        });
+      }
+
+      // ordenar por urgência e depois nome
+      list.sort((a, b) => {
+        const da = daysToExpire(a);
+        const db = daysToExpire(b);
+        if (da === null && db === null) return (a.nome || "").localeCompare(b.nome || "");
+        if (da === null) return 1;
+        if (db === null) return -1;
+        if (da !== db) return da - db;
+        return (a.nome || "").localeCompare(b.nome || "");
+      });
+
+      return list;
+    });
+
+    const refreshFromDB = async () => {
+      inventory.value = await dbGetAll();
+    };
+
+    const openModal = (item = null) => {
+      if (item) {
+        const clone = JSON.parse(JSON.stringify(item));
+        form.value = { ...DEFAULT_PRICES, ...clone };
+        equipmentTypes.forEach(t => {
+          form.value[t.key] ??= 0;
+          form.value[t.priceKey] ??= DEFAULT_PRICES[t.priceKey] || 0;
+        });
+
+        if (!form.value.vencISO) {
+          const dt = parseVencToDate(form.value);
+          if (dt) {
+            const yyyy = dt.getFullYear();
+            const mm = String(dt.getMonth() + 1).padStart(2, '0');
+            const dd = String(dt.getDate()).padStart(2, '0');
+            form.value.vencISO = `${yyyy}-${mm}-${dd}`;
+          }
+        }
+
+        isEditingId.value = item.id;
+      } else {
+        form.value = { nome: "", vencISO: "2026-01-22", ...DEFAULT_PRICES };
+        equipmentTypes.forEach(t => form.value[t.key] = 0);
+        isEditingId.value = null;
+      }
+      modalInstance?.show();
+    };
+
+    const sanitizeForm = () => {
+      form.value.nome = (form.value.nome || "").trim();
+      equipmentTypes.forEach(t => {
+        form.value[t.key] = Math.max(0, safeNumber(form.value[t.key]));
+        form.value[t.priceKey] = Math.max(0, safeNumber(form.value[t.priceKey]));
+      });
+
+      // compatibilidade: guarda também venc BR
+      if (form.value.vencISO) {
+        const dt = new Date(form.value.vencISO + "T00:00:00");
+        form.value.venc = formatDateBR(dt);
+      } else {
+        form.value.venc = form.value.venc || "";
+      }
+    };
+
+    const saveUnit = async () => {
+      if (!isFormValid.value) return;
+
+      saving.value = true;
+      try {
+        sanitizeForm();
+
+        const id = isEditingId.value || crypto.randomUUID();
+        const payload = {
+          id,
+          ...form.value,
+          updatedAt: new Date().toISOString()
+        };
+
+        await dbPut(payload);
+        await refreshFromDB();
+        modalInstance?.hide();
+      } catch (e) {
+        console.error(e);
+        alert("Falha ao salvar no banco offline. Veja o console.");
+      } finally {
+        saving.value = false;
+      }
+    };
+
+    const confirmDelete = async (item) => {
+      if (confirm(`Tem certeza que deseja remover "${item.nome}"?\nEsta ação não pode ser desfeita.`)) {
+        await dbDelete(item.id);
+        await refreshFromDB();
+      }
+    };
+
+    const seedData = async () => {
+      const ok = confirm("Restaurar base padrão do Acre (offline)?\nIsso irá adicionar registros na sua base local.");
+      if (!ok) return;
+
+      const data = [
+        { nome: "AC Acrelândia", pqs04: 2, co206: 1, hidrante: 1 },
+        { nome: "AC Assis Brasil", pqs04: 1, co206: 1 },
+        { nome: "AC Brasiléia", pqs04: 2, co206: 2, hidrante: 2 },
+        { nome: "AC Cruzeiro do Sul", pqs04: 6, co206: 2, h2o: 2, hidrante: 4 },
+        { nome: "AC Feijó", pqs04: 2, co206: 1, h2o: 1, hidrante: 2 },
+        { nome: "AC Sena Madureira", pqs04: 2, co206: 1, h2o: 1, hidrante: 2 },
+        { nome: "AC Tarauacá", pqs04: 2, co206: 1, h2o: 1, hidrante: 2 },
+        { nome: "CDD Bosque", pqs04: 7, co206: 2, hidrante: 3 },
+        { nome: "CDD Rio Branco", pqs04: 2, pqs06: 5, co206: 1, h2o: 2, hidrante: 5 },
+        { nome: "CDD Seis de Agosto/CLI", pqs06: 10, pqs08: 4, co206: 1, h2o: 6, hidrante: 8 },
+        { nome: "Edifício Sede / AC Rio Branco", pqs04: 6, pqs06: 3, co206: 5, h2o: 2, hidrante: 12 },
+        { nome: "Reserva Técnica", pqs04: 5, co206: 7 }
+      ];
+
+      const vencISO = "2026-01-22";
+      for (const u of data) {
+        const id = crypto.randomUUID();
+        const payload = {
+          id,
+          ...DEFAULT_PRICES,
+          ...u,
+          vencISO,
+          venc: formatDateBR(new Date(vencISO + "T00:00:00")),
+          updatedAt: new Date().toISOString()
+        };
+        equipmentTypes.forEach(t => payload[t.key] ??= 0);
+        await dbPut(payload);
+      }
+
+      await refreshFromDB();
+    };
+
+    const exportToExcel = () => {
+      const rows = inventory.value.map(i => ({
+        'Unidade': i.nome,
+        'Vencimento': displayVenc(i),
+        'Dias p/ vencer': daysToExpire(i),
+        'PQS 4kg': i.pqs04 || 0,
+        'PQS 6kg': i.pqs06 || 0,
+        'PQS 8kg': i.pqs08 || 0,
+        'CO2 6kg': i.co206 || 0,
+        'Água 10L': i.h2o || 0,
+        'Hidrantes (Mangueiras)': i.hidrante || 0,
+        'Custo Manutenção (R$)': calculateRowCost(i)
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Inventario_ACR_OFFLINE");
+      XLSX.writeFile(wb, `SMAN_ACR_Offline_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
+    // ===== Backup / Restore JSON =====
+    const exportBackupJSON = () => {
+      const payload = {
+        app: "SMAN_ACR_OFFLINE",
+        exportedAt: new Date().toISOString(),
+        items: inventory.value
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `SMAN_ACR_Backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    };
+
+    const triggerImportJSON = () => {
+      importFile.value?.click();
+    };
+
+    const importBackupJSON = async (evt) => {
+      const file = evt.target.files?.[0];
+      evt.target.value = ""; // reset para permitir reimportar o mesmo arquivo
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+
+        if (!data || !Array.isArray(data.items)) {
+          alert("Arquivo inválido: não contém a lista de itens.");
+          return;
+        }
+
+        const ok = confirm(`Restaurar ${data.items.length} registros do backup?\nIsso irá MESCLAR com sua base local (mesmos IDs serão sobrescritos).`);
+        if (!ok) return;
+
+        for (const item of data.items) {
+          if (!item.id) item.id = crypto.randomUUID();
+          // garante preços padrão
+          const merged = { ...DEFAULT_PRICES, ...item };
+          equipmentTypes.forEach(t => {
+            merged[t.key] ??= 0;
+            merged[t.priceKey] ??= DEFAULT_PRICES[t.priceKey] || 0;
+          });
+          await dbPut(merged);
+        }
+
+        await refreshFromDB();
+        alert("Backup restaurado com sucesso!");
+      } catch (e) {
+        console.error(e);
+        alert("Falha ao importar JSON. Verifique se o arquivo está correto.");
+      }
+    };
+
+    onMounted(async () => {
+      const modalEl = document.getElementById('unitModal');
+      if (modalEl && window.bootstrap) modalInstance = new window.bootstrap.Modal(modalEl);
+
+      // Carrega DB offline
+      try {
+        await refreshFromDB();
+      } catch (e) {
+        console.error(e);
+        alert("Não foi possível abrir o banco offline (IndexedDB). Verifique permissões do navegador.");
+      } finally {
+        loading.value = false;
+      }
+    });
+
+    return {
+      inventory, filteredInventory, searchQuery, statusFilter,
+      loading, saving, form, isEditingId, equipmentTypes,
+      totalCustoGlobal, totalEquipamentos, totalHidrantes,
+      countDanger, countWarning, countOk,
+      formatMoney, formatDateBR, calculateRowCost,
+      daysToExpire, getStatusClass, getStatusIcon, displayVenc,
+      openModal, saveUnit, confirmDelete, seedData,
+      exportToExcel, exportBackupJSON, triggerImportJSON, importBackupJSON,
+      isFormValid, importFile
+    };
+  }
+}).mount('#app');
+</script>
+
+</body>
+</html>
